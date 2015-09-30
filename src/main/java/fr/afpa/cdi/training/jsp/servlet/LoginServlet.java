@@ -1,13 +1,8 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package fr.afpa.cdi.training.jsp.servlet;
 
+import fr.afpa.cdi.training.jsp.bean.helper.PageHelper;
 import fr.afpa.cdi.training.jsp.model.PersonModel;
 import java.io.IOException;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -27,20 +22,8 @@ import javax.servlet.http.HttpServletResponse;
 @WebServlet(name = "LoginServlet", urlPatterns = {"/Login"})
 public class LoginServlet extends HttpServlet {
 
-    private Cookie getCookie(Cookie[] cookies, String name) {
-        if (cookies != null) {
-            for (Cookie c : cookies) {
-                if (c.getName().equals(name)) {
-                    return c;
-                }
-            }
-        }
-        return null;
-    }
-
     /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
+     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
      *
      * @param request servlet request
      * @param response servlet response
@@ -50,35 +33,48 @@ public class LoginServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        switch (request.getParameter("auth")) {
-            case "Login":
-                doLogin(request, response);
-                break;
-            case "Logout":
-                doLogout(request, response);
-                break;
+        if (request.getParameter("submit") != null) {
+            switch (request.getParameter("submit")) {
+                case "Login":
+                    doLogin(request, response);
+                    break;
+                case "Logout":
+                    doLogout(request, response);
+                    break;
+            }
+        } else {
+            Cookie cookieAttempt = getCookie(request.getCookies(), "LOGIN_ATTEMPT");
+            Cookie cookieAttemptMin = getCookie(request.getCookies(), "LOGIN_ATTEMPT_MIN");
+            Cookie authCookie = getCookie(request.getCookies(), "AUTH");
+
+            if (authCookie != null) {
+                PageHelper.getWelcomePage(response);
+            } else {
+                if (cookieAttempt != null && Integer.valueOf(cookieAttempt.getValue()) == 3) {
+
+                    if (minutesExpired(cookieAttemptMin.getValue()) >= 1) {
+                        cookieAttempt.setMaxAge(0);
+                        cookieAttemptMin.setMaxAge(0);
+                        response.addCookie(cookieAttempt);
+                        response.addCookie(cookieAttemptMin);
+                        PageHelper.getLoginForm(response, false);
+                    } else {
+                        PageHelper.getErrorPage(response, cookieAttempt.getValue());
+                    }
+
+                } else {
+                    PageHelper.getLoginForm(response, false);
+                }
+            }
         }
 
-    }
-
-    private long diffDate(String dateString) {
-        DateFormat dateFormat = DateFormat.getDateInstance();
-        Date date;
-        try {
-            date = dateFormat.parse(dateString);
-            long dif = new Date().getTime() - date.getTime();
-            return dif / (60 * 1000) % 60;
-        } catch (ParseException ex) {
-            Logger.getLogger(LoginServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return 0;
     }
 
     private void doLogout(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Cookie cookie = getCookie(request.getCookies(), "AUTH");
         cookie.setMaxAge(0);
         response.addCookie(cookie);
-        PageUtil.buildPage(response, PageUtil.getLoginForm(false));
+        PageHelper.getLoginForm(response, false);
     }
 
     private void doLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -88,6 +84,8 @@ public class LoginServlet extends HttpServlet {
 
         Cookie cookieAttempt = getCookie(request.getCookies(), "LOGIN_ATTEMPT");
         Cookie cookieAttemptMin = getCookie(request.getCookies(), "LOGIN_ATTEMPT_MIN");
+
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         if (username.equals("admin") && password.equals("root")) {
 
@@ -99,30 +97,63 @@ public class LoginServlet extends HttpServlet {
             }
 
             response.addCookie(new Cookie("AUTH", "1"));
-            PageUtil.buildPage(response, PageUtil.getWelcomePage());
+            PageHelper.getWelcomePage(response);
+
         } else {
             if (cookieAttempt != null && cookieAttemptMin != null) {
 
                 Logger.getLogger(PersonModel.class.getName()).log(Level.SEVERE, cookieAttemptMin.getValue());
 
-                if (Integer.valueOf(cookieAttempt.getValue()) >= 3 && diffDate(cookieAttemptMin.getValue()) >= 10) {
+                cookieAttempt.setValue(String.valueOf(Integer.valueOf(cookieAttempt.getValue()) + 1));
+                response.addCookie(cookieAttempt);
 
-                    PageUtil.buildPage(response, PageUtil.getErrorPage(cookieAttempt.getValue()));
+                if (Integer.valueOf(cookieAttempt.getValue()) == 3) {
+                    PageHelper.getErrorPage(response, cookieAttempt.getValue());
                 } else {
-                    cookieAttempt.setValue(String.valueOf(Integer.valueOf(cookieAttempt.getValue()) + 1));
-                    response.addCookie(cookieAttempt);
-                    PageUtil.buildPage(response, PageUtil.getLoginForm(true));
+                    PageHelper.getLoginForm(response, true);
                 }
+
             } else {
                 response.addCookie(new Cookie("LOGIN_ATTEMPT", "1"));
-                SimpleDateFormat formatter = new SimpleDateFormat("dd MMM yyyy HH:mm:ss");
                 response.addCookie(new Cookie("LOGIN_ATTEMPT_MIN", formatter.format(new Date())));
-                PageUtil.buildPage(response, PageUtil.getLoginForm(true));
+                PageHelper.getLoginForm(response, true);
             }
         }
     }
 
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
+    private Cookie getCookie(Cookie[] cookies, String name) {
+        if (cookies != null) {
+            for (Cookie c : cookies) {
+                if (c.getName().equals(name)) {
+                    return c;
+                }
+            }
+        }
+        return null;
+    }
+
+    private long minutesExpired(String stringDate) {
+
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date today = new Date();
+        Date cookieDate;
+
+        long minute = 0;
+
+        try {
+            cookieDate = format.parse(stringDate);
+
+            long currTime = today.getTime();
+            long cookieTime = cookieDate.getTime();
+            long diff = currTime - cookieTime;
+            minute = diff / (60 * 1000) % 60;
+        } catch (ParseException ex) {
+            Logger.getLogger(LoginServlet.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return minute;
+    }
+
     /**
      * Handles the HTTP <code>GET</code> method.
      *
@@ -132,8 +163,7 @@ public class LoginServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         processRequest(request, response);
     }
 
@@ -146,8 +176,7 @@ public class LoginServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         processRequest(request, response);
     }
 
