@@ -5,9 +5,13 @@
  */
 package fr.afpa.cdi.training.jsp.jdbc;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,18 +23,25 @@ public class ConnectionFactory {
 
     private static final ConnectionFactory instance = new ConnectionFactory();
 
-    private final String DRIVER_NAME = "com.mysql.jdbc.Driver";
-    private final String DATABASE_URL = "jdbc:mysql://localhost/jdbc_db";
-    private final String DATABASE_USER = "root";
-    private final String DATABASE_PASSWORD = "";
+    private String DRIVER_NAME;
+    private String DATABASE_URL;
+    private String DATABASE_USER;
+    private String DATABASE_PASSWORD;
 
     public ConnectionFactory() {
         try {
+            Properties properties = new Properties();
+            properties.load(ConnectionFactory.class.getResourceAsStream("/properties/config.properties"));
+            DRIVER_NAME = properties.getProperty("mysql_driver_name");
+            DATABASE_URL = properties.getProperty("mysql_database_url");
+            DATABASE_USER = properties.getProperty("mysql_database_user");
+            DATABASE_PASSWORD = properties.getProperty("mysql_database_password");
             Class.forName(DRIVER_NAME);
-        } catch (ClassNotFoundException ex) {
+        } catch (ClassNotFoundException | FileNotFoundException ex) {
+            Logger.getLogger(ConnectionFactory.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
             Logger.getLogger(ConnectionFactory.class.getName()).log(Level.SEVERE, null, ex);
         }
-
     }
 
     private Connection createConnection() throws SQLException {

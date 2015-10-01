@@ -1,6 +1,6 @@
 package fr.afpa.cdi.training.jsp.servlet;
 
-import fr.afpa.cdi.training.jsp.bean.helper.PageHelper;
+import fr.afpa.cdi.training.jsp.helper.PageHelper;
 import fr.afpa.cdi.training.jsp.model.PersonModel;
 import java.io.IOException;
 import java.text.ParseException;

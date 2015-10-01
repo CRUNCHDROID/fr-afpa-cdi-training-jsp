@@ -6,7 +6,7 @@
 package fr.afpa.cdi.training.jsp.bean;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.sql.Date;
 
 /**
  *

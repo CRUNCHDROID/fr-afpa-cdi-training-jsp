@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package fr.afpa.cdi.training.jsp.bean.helper;
+package fr.afpa.cdi.training.jsp.helper;
 
 import java.io.IOException;
 import java.io.PrintWriter;
