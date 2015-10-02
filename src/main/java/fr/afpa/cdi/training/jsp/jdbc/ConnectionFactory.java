@@ -5,7 +5,6 @@
  */
 package fr.afpa.cdi.training.jsp.jdbc;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Connection;
@@ -32,10 +31,10 @@ public class ConnectionFactory {
         try {
             Properties properties = new Properties();
             properties.load(ConnectionFactory.class.getResourceAsStream("/properties/config.properties"));
-            DRIVER_NAME = properties.getProperty("mysql_driver_name");
-            DATABASE_URL = properties.getProperty("mysql_database_url");
-            DATABASE_USER = properties.getProperty("mysql_database_user");
-            DATABASE_PASSWORD = properties.getProperty("mysql_database_password");
+            DRIVER_NAME = properties.getProperty(properties.getProperty("driver_name"));
+            DATABASE_URL = properties.getProperty(properties.getProperty("database_url"));
+            DATABASE_USER = properties.getProperty(properties.getProperty("database_user"));
+            DATABASE_PASSWORD = properties.getProperty(properties.getProperty("database_password"));
             Class.forName(DRIVER_NAME);
         } catch (ClassNotFoundException | FileNotFoundException ex) {
             Logger.getLogger(ConnectionFactory.class.getName()).log(Level.SEVERE, null, ex);
